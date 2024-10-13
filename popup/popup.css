@@ -89,28 +89,21 @@ button {
     align-items: center;
     justify-content: center;
     transition: background-color 0.3s, color 0.3s;
-}
-
-#startPause {
-    background-color: var(--primary);
-    color: var(--primary-inverse);
     border: 2px solid var(--primary);
 }
 
-#startPause:hover {
+#startPause, #reset {
+    background-color: var(--primary);
+    color: var(--primary-inverse);
+}
+
+#startPause:hover, #reset:hover {
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
 }
 
-#reset {
-    background-color: var(--background-color);
-    color: var(--secondary);
-    border: 2px solid var(--secondary);
-}
-
-#reset:hover {
-    background-color: var(--secondary);
-    color: var(--secondary-inverse);
+#startPause i, #reset i {
+    font-size: 1.2rem;
 }
 
 #stats {

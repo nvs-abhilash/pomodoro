@@ -3,15 +3,17 @@
 const INITIAL_FOCUS_SESSION_LENGTH = 25 * 60;
 let DEFAULT_FOCUS_SESSION_LENGTH = INITIAL_FOCUS_SESSION_LENGTH;
 
-let timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
-let isRunning = false;
-let isFocusSession = true;
-let isEditing = false;
-let focusSessionsCompleted = 0;
-let dailyFocusSessions = 0;
-let weeklyAverage = 0;
-let isMusicOn = false;
-let musicUrl = '';
+const state = {
+    timeLeft: DEFAULT_FOCUS_SESSION_LENGTH,
+    isRunning: false,
+    isFocusSession: true,
+    isEditing: false,
+    focusSessionsCompleted: 0,
+    dailyFocusSessions: 0,
+    weeklyAverage: 0,
+    isMusicOn: false,
+    musicUrl: ''
+};
 
 const elements = {
     timerDisplay: document.getElementById('timer'),
@@ -32,36 +34,32 @@ const elements = {
 };
 
 function updateDisplay() {
-    if (!isEditing) {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
+    if (!state.isEditing) {
+        const minutes = Math.floor(state.timeLeft / 60);
+        const seconds = state.timeLeft % 60;
         elements.timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        elements.sessionTypeDisplay.textContent = isFocusSession ? 'Focus Session' : 'Break Time';
-        elements.statsDisplay.textContent = `Today: ${dailyFocusSessions} | Weekly Avg: ${weeklyAverage.toFixed(1)}`;
-        
-        // Hide or show the edit icon based on whether the timer is running
-        elements.editIcon.style.display = isRunning ? 'none' : 'block';
+        elements.sessionTypeDisplay.textContent = state.isFocusSession ? 'Focus Session' : 'Break Time';
+        elements.statsDisplay.textContent = `Today: ${state.dailyFocusSessions} | Weekly Avg: ${state.weeklyAverage.toFixed(1)}`;
+        elements.editIcon.style.display = state.isRunning ? 'none' : 'block';
     }
 }
 
 function updateButtonState() {
     const icon = elements.startPauseButton.querySelector('i');
-    icon.classList.toggle('fa-play', !isRunning);
-    icon.classList.toggle('fa-pause', isRunning);
-    
-    // Update edit icon visibility when button state changes
-    elements.editIcon.style.display = isRunning ? 'none' : 'block';
+    icon.classList.toggle('fa-play', !state.isRunning);
+    icon.classList.toggle('fa-pause', state.isRunning);
+    elements.editIcon.style.display = state.isRunning ? 'none' : 'block';
 }
 
 function startPauseTimer() {
     chrome.storage.sync.get(['stopMusicOnPause'], (result) => {
         const stopMusicOnPause = result.stopMusicOnPause || false;
         chrome.runtime.sendMessage({ 
-            action: isRunning ? 'pauseTimer' : 'startTimer', 
-            isMusicOn,
+            action: state.isRunning ? 'pauseTimer' : 'startTimer', 
+            isMusicOn: state.isMusicOn,
             stopMusicOnPause
         });
-        isRunning = !isRunning;
+        state.isRunning = !state.isRunning;
         updateButtonState();
         updateDisplay();
     });
@@ -69,20 +67,20 @@ function startPauseTimer() {
 
 function resetTimer() {
     chrome.runtime.sendMessage({ action: 'resetTimer' });
-    isRunning = false;
-    isFocusSession = true;
-    timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
+    state.isRunning = false;
+    state.isFocusSession = true;
+    state.timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
     updateDisplay();
     updateButtonState();
 }
 
 function editTimer() {
-    if (isRunning) return;
+    if (state.isRunning) return;
 
-    isEditing = true;
+    state.isEditing = true;
     chrome.runtime.sendMessage({ action: 'startEditing' });
 
-    const currentMinutes = Math.floor(timeLeft / 60);
+    const currentMinutes = Math.floor(state.timeLeft / 60);
     elements.timerDisplay.innerHTML = `<input type="number" id="minutesInput" min="1" max="60" value="${currentMinutes}">:00`;
     
     const minutesInput = document.getElementById('minutesInput');
@@ -91,9 +89,7 @@ function editTimer() {
 
     minutesInput.addEventListener('blur', saveNewTime);
     minutesInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            saveNewTime();
-        }
+        if (e.key === 'Enter') saveNewTime();
     });
 }
 
@@ -101,15 +97,15 @@ function saveNewTime() {
     const minutesInput = document.getElementById('minutesInput');
     const newMinutes = parseInt(minutesInput.value, 10);
     if (newMinutes && newMinutes > 0 && newMinutes <= 60) {
-        timeLeft = newMinutes * 60;
-        DEFAULT_FOCUS_SESSION_LENGTH = timeLeft; // Set new default
-        isFocusSession = true;
+        state.timeLeft = newMinutes * 60;
+        DEFAULT_FOCUS_SESSION_LENGTH = state.timeLeft;
+        state.isFocusSession = true;
         chrome.runtime.sendMessage({ 
             action: 'setTime', 
-            time: timeLeft,
+            time: state.timeLeft,
             defaultTime: DEFAULT_FOCUS_SESSION_LENGTH
         });
-        isEditing = false;
+        state.isEditing = false;
         updateDisplay();
         chrome.runtime.sendMessage({ action: 'stopEditing' });
     } else {
@@ -120,8 +116,8 @@ function saveNewTime() {
 
 function updateMusicIcon() {
     const icon = elements.musicToggle.querySelector('i');
-    icon.classList.toggle('fa-volume-mute', !isMusicOn);
-    icon.classList.toggle('fa-music', isMusicOn);
+    icon.classList.toggle('fa-volume-mute', !state.isMusicOn);
+    icon.classList.toggle('fa-music', state.isMusicOn);
 }
 
 function showSettingsView() {
@@ -140,11 +136,10 @@ function showMainView() {
 }
 
 function updateFromBackground() {
-    if (!isEditing) {
+    if (!state.isEditing) {
         chrome.runtime.sendMessage({ action: 'getTime' }, (response) => {
             if (response) {
-                ({timeLeft, isRunning, isFocusSession, focusSessionsCompleted, dailyFocusSessions, weeklyAverage, isMusicOn, DEFAULT_FOCUS_SESSION_LENGTH} = response);
-                musicUrl = response.musicUrl || '';
+                Object.assign(state, response);
                 updateDisplay();
                 updateButtonState();
                 updateMusicIcon();
@@ -161,15 +156,12 @@ function applyTheme(theme) {
 elements.startPauseButton.addEventListener('click', startPauseTimer);
 elements.resetButton.addEventListener('click', resetTimer);
 elements.timerContainer.addEventListener('click', editTimer);
-
 elements.musicToggle.addEventListener('click', () => {
-    isMusicOn = !isMusicOn;
+    state.isMusicOn = !state.isMusicOn;
     updateMusicIcon();
-    chrome.runtime.sendMessage({ action: 'toggleMusic', isMusicOn });
+    chrome.runtime.sendMessage({ action: 'toggleMusic', isMusicOn: state.isMusicOn });
 });
-
 elements.settingsButton.addEventListener('click', showSettingsView);
-
 elements.settingsForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newMusicUrl = elements.musicUrlInput.value;
@@ -178,7 +170,7 @@ elements.settingsForm.addEventListener('submit', (e) => {
     chrome.storage.sync.set({ 
         musicUrl: newMusicUrl, 
         theme: newTheme, 
-        stopMusicOnPause: stopMusicOnPause 
+        stopMusicOnPause 
     }, () => {
         console.log('Settings saved');
         showMainView();
@@ -192,7 +184,7 @@ chrome.storage.sync.get(['theme', 'defaultFocusTime'], (result) => {
     applyTheme(theme);
     if (result.defaultFocusTime) {
         DEFAULT_FOCUS_SESSION_LENGTH = result.defaultFocusTime;
-        timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
+        state.timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
     }
 });
 

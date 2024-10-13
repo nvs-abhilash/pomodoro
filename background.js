@@ -1,68 +1,57 @@
 'use strict';
 
+// Constants
 const INITIAL_FOCUS_SESSION_LENGTH = 25 * 60;
 const BREAK_SESSION_LENGTH = 5 * 60;
 
-let DEFAULT_FOCUS_SESSION_LENGTH = INITIAL_FOCUS_SESSION_LENGTH;
-let timer;
-let timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
-let isRunning = false;
-let isFocusSession = true;
-let isEditing = false;
-let focusSessionsCompleted = 0;
-let dailyFocusSessions = {};
-let isMusicOn = false;
-let musicTab = null;
-let isMusicPlaying = false;
+// State
+const state = {
+    DEFAULT_FOCUS_SESSION_LENGTH: INITIAL_FOCUS_SESSION_LENGTH,
+    timeLeft: INITIAL_FOCUS_SESSION_LENGTH,
+    isRunning: false,
+    isFocusSession: true,
+    isEditing: false,
+    focusSessionsCompleted: 0,
+    dailyFocusSessions: {},
+    isMusicOn: false,
+    isMusicPlaying: false
+};
 
+let timer;
+let musicTab = null;
+
+// Timer functions
 function updateTimer() {
-    if (isRunning && !isEditing) {
-        timeLeft--;
-        if (timeLeft === 0) {
-            handleSessionEnd();
-        }
+    if (state.isRunning && !state.isEditing) {
+        state.timeLeft--;
+        if (state.timeLeft === 0) handleSessionEnd();
     }
 }
 
 function handleSessionEnd() {
-    isRunning = false;
+    state.isRunning = false;
     clearInterval(timer);
-    
-    if (isFocusSession) {
-        switchToBreakSession();
-    } else {
-        switchToFocusSession();
-    }
+    state.isFocusSession ? switchToBreakSession() : switchToFocusSession();
     startTimer();
 }
 
 function switchToBreakSession() {
-    isFocusSession = false;
-    timeLeft = BREAK_SESSION_LENGTH;
-    focusSessionsCompleted++;
+    state.isFocusSession = false;
+    state.timeLeft = BREAK_SESSION_LENGTH;
+    state.focusSessionsCompleted++;
     updateDailyFocusSessions();
     sendNotification('Focus session completed! Time for a 5-minute break.');
 }
 
 function switchToFocusSession() {
-    isFocusSession = true;
-    timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
+    state.isFocusSession = true;
+    state.timeLeft = state.DEFAULT_FOCUS_SESSION_LENGTH;
     sendNotification('Break time over! Ready for another focus session?');
 }
 
-function sendNotification(message) {
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'images/demure_pomodoro_icon_128x128.png',
-        title: 'MindfulMinutes',
-        message: message,
-        priority: 2
-    });
-}
-
 function startTimer() {
-    if (!isRunning && !isEditing) {
-        isRunning = true;
+    if (!state.isRunning && !state.isEditing) {
+        state.isRunning = true;
         timer = setInterval(updateTimer, 1000);
         playMusic();
     }
@@ -70,41 +59,47 @@ function startTimer() {
 
 function stopTimer(stopMusicFlag = false) {
     clearInterval(timer);
-    isRunning = false;
-    if (stopMusicFlag) {
-        stopMusic();
-    }
+    state.isRunning = false;
+    if (stopMusicFlag) stopMusic();
+}
+
+// Utility functions
+function sendNotification(message) {
+    chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'images/demure_pomodoro_icon_128x128.png',
+        title: 'MindfulMinutes',
+        message,
+        priority: 2
+    });
 }
 
 function updateDailyFocusSessions() {
     const today = new Date().toLocaleDateString();
-    dailyFocusSessions[today] = (dailyFocusSessions[today] || 0) + 1;
+    state.dailyFocusSessions[today] = (state.dailyFocusSessions[today] || 0) + 1;
     pruneOldSessions();
 }
 
 function pruneOldSessions() {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    Object.keys(dailyFocusSessions).forEach(date => {
-        if (new Date(date) < oneWeekAgo) {
-            delete dailyFocusSessions[date];
-        }
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    Object.keys(state.dailyFocusSessions).forEach(date => {
+        if (new Date(date) < oneWeekAgo) delete state.dailyFocusSessions[date];
     });
 }
 
 function getWeeklyAverage() {
-    const values = Object.values(dailyFocusSessions);
+    const values = Object.values(state.dailyFocusSessions);
     return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0;
 }
 
+// Music functions
 function playMusic() {
-    if (isMusicOn && !isMusicPlaying) { // Only start music if it's not already playing
+    if (state.isMusicOn && !state.isMusicPlaying) {
         chrome.storage.sync.get(['musicUrl'], (result) => {
             if (result.musicUrl) {
                 chrome.tabs.create({ url: result.musicUrl, active: false }, (tab) => {
                     musicTab = tab;
-                    isMusicPlaying = true; // Set music as playing
+                    state.isMusicPlaying = true;
                 });
             }
         });
@@ -115,62 +110,53 @@ function stopMusic() {
     if (musicTab) {
         chrome.tabs.remove(musicTab.id);
         musicTab = null;
-        isMusicPlaying = false; // Set music as not playing
+        state.isMusicPlaying = false;
     }
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    switch (request.action) {
-        case 'startTimer':
-            startTimer();
-            break;
-        case 'pauseTimer':
-            stopTimer(request.stopMusicOnPause);
-            break;
-        case 'resetTimer':
+// Message handler
+function handleMessage(request, sender, sendResponse) {
+    const actions = {
+        startTimer: () => startTimer(),
+        pauseTimer: () => stopTimer(request.stopMusicOnPause),
+        resetTimer: () => {
             stopTimer();
-            isFocusSession = true;
-            timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
-            break;
-        case 'setTime':
-            timeLeft = request.time;
-            DEFAULT_FOCUS_SESSION_LENGTH = request.defaultTime;
-            isFocusSession = true;
-            chrome.storage.sync.set({ defaultFocusTime: DEFAULT_FOCUS_SESSION_LENGTH });
-            break;
-        case 'startEditing':
-            isEditing = true;
+            state.isFocusSession = true;
+            state.timeLeft = state.DEFAULT_FOCUS_SESSION_LENGTH;
+        },
+        setTime: () => {
+            state.timeLeft = request.time;
+            state.DEFAULT_FOCUS_SESSION_LENGTH = request.defaultTime;
+            state.isFocusSession = true;
+            chrome.storage.sync.set({ defaultFocusTime: state.DEFAULT_FOCUS_SESSION_LENGTH });
+        },
+        startEditing: () => {
+            state.isEditing = true;
             stopTimer();
-            break;
-        case 'stopEditing':
-            isEditing = false;
-            if (isRunning) {
-                startTimer();
-            }
-            break;
-        case 'toggleMusic':
-            isMusicOn = request.isMusicOn;
-            if (isMusicOn) {
-                playMusic();
-            } else {
-                stopMusic();
-            }
-            break;
-        case 'getTime':
+        },
+        stopEditing: () => {
+            state.isEditing = false;
+            if (state.isRunning) startTimer();
+        },
+        toggleMusic: () => {
+            state.isMusicOn = request.isMusicOn;
+            state.isMusicOn ? playMusic() : stopMusic();
+        },
+        getTime: () => {
             sendResponse({
-                timeLeft,
-                isRunning,
-                isFocusSession,
-                focusSessionsCompleted,
-                dailyFocusSessions: dailyFocusSessions[new Date().toLocaleDateString()] || 0,
-                weeklyAverage: getWeeklyAverage(),
-                isMusicOn,
-                isMusicPlaying,
-                DEFAULT_FOCUS_SESSION_LENGTH
+                ...state,
+                dailyFocusSessions: state.dailyFocusSessions[new Date().toLocaleDateString()] || 0,
+                weeklyAverage: getWeeklyAverage()
             });
             return true;
-    }
-});
+        }
+    };
+
+    if (actions[request.action]) actions[request.action]();
+}
+
+// Event listeners
+chrome.runtime.onMessage.addListener(handleMessage);
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.storage.sync.set({ theme: 'auto', defaultFocusTime: INITIAL_FOCUS_SESSION_LENGTH }, () => {
@@ -178,5 +164,5 @@ chrome.runtime.onInstalled.addListener(() => {
     });
 });
 
-// Start the timer when the background script loads
+// Initialize
 startTimer();
