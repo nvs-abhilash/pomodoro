@@ -1,0 +1,119 @@
+body {
+    width: 250px;
+    padding: 20px;
+    background-color: var(--background-color);
+    color: var(--color);
+}
+
+h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+#sessionType {
+    font-size: 1rem;
+    text-align: center;
+    margin-bottom: 1rem;
+    color: var(--secondary);
+}
+
+#timerContainer {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
+
+#timer {
+    font-size: 3rem;
+    margin: 1rem 0;
+    color: var(--primary);
+    display: inline-block;
+}
+
+#timer input {
+    font-size: 3rem;
+    width: 100px;
+    text-align: right;
+    border: none;
+    background: transparent;
+    color: var(--primary);
+    -moz-appearance: textfield;
+}
+
+#timer input::-webkit-outer-spin-button,
+#timer input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#editIcon {
+    position: absolute;
+    top: 50%;
+    right: -5px;
+    transform: translateY(-50%);
+    font-size: 1.2rem;
+    color: var(--secondary);
+    opacity: 0;
+    transition: opacity 0.3s;
+    padding: 5px;
+}
+
+#timerContainer:hover #editIcon {
+    opacity: 1;
+}
+
+#controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button:hover {
+    background-color: var(--primary-hover);
+}
+
+#reset {
+    background-color: var(--secondary);
+    color: var(--secondary-inverse);
+}
+
+#reset:hover {
+    background-color: var(--secondary-hover);
+}
+
+#stats {
+    font-size: 0.8rem;
+    text-align: center;
+    margin-top: 1rem;
+    color: var(--secondary);
+}
+
+/* Add this at the end of the file */
+#musicToggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--secondary);
+}
+
+#musicToggle:hover {
+    color: var(--primary);
+}

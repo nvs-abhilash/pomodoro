@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Pomodoro Settings</title>
+    <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@1.*/css/pico.min.css">
+    <style>
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Zen Pomodoro Settings</h1>
+    <form id="settingsForm">
+        <label for="musicUrl">Focus Music URL (YouTube, YT Music, or Spotify):</label>
+        <input type="url" id="musicUrl" name="musicUrl" placeholder="https://www.youtube.com/watch?v=...">
+        <button type="submit">Save</button>
+    </form>
+    <script src="settings.js"></script>
+</body>
+</html>
