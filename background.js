@@ -54,7 +54,7 @@ function sendNotification(message) {
     chrome.notifications.create({
         type: 'basic',
         iconUrl: 'images/demure_pomodoro_icon_128x128.png',
-        title: 'Zen Pomodoro',
+        title: 'MindfulMinutes',
         message: message,
         priority: 2
     });

@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Zen Pomodoro",
+    "name": "MindfulMinutes",
     "version": "1.0",
     "description": "A pomodoro timer that helps you stay focused and productive with focus music.",
     "action": {
