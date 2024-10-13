@@ -1,50 +1,63 @@
+'use strict';
+
+const INITIAL_FOCUS_SESSION_LENGTH = 25 * 60;
+const BREAK_SESSION_LENGTH = 5 * 60;
+
+let DEFAULT_FOCUS_SESSION_LENGTH = INITIAL_FOCUS_SESSION_LENGTH;
 let timer;
-let timeLeft = 25 * 60; // 25 minutes in seconds for focus session
+let timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
 let isRunning = false;
 let isFocusSession = true;
 let isEditing = false;
 let focusSessionsCompleted = 0;
 let dailyFocusSessions = {};
-const FOCUS_SESSION_LENGTH = 25 * 60;
-const BREAK_SESSION_LENGTH = 5 * 60;
 let isMusicOn = false;
 let musicTab = null;
+let isMusicPlaying = false; // New variable to track if music is currently playing
 
 function updateTimer() {
     if (isRunning && !isEditing) {
         timeLeft--;
         if (timeLeft === 0) {
-            isRunning = false;
-            clearInterval(timer);
-            
-            if (isFocusSession) {
-                // Switch to break session
-                isFocusSession = false;
-                timeLeft = BREAK_SESSION_LENGTH;
-                focusSessionsCompleted++;
-                updateDailyFocusSessions();
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'images/demure_pomodoro_icon_128x128.png',
-                    title: 'Zen Pomodoro',
-                    message: 'Focus session completed! Time for a 5-minute break.',
-                    priority: 2
-                });
-            } else {
-                // Switch back to focus session
-                isFocusSession = true;
-                timeLeft = FOCUS_SESSION_LENGTH;
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'images/demure_pomodoro_icon_128x128.png',
-                    title: 'Zen Pomodoro',
-                    message: 'Break time over! Ready for another focus session?',
-                    priority: 2
-                });
-            }
-            startTimer(); // Automatically start the next session
+            handleSessionEnd();
         }
     }
+}
+
+function handleSessionEnd() {
+    isRunning = false;
+    clearInterval(timer);
+    
+    if (isFocusSession) {
+        switchToBreakSession();
+    } else {
+        switchToFocusSession();
+    }
+    startTimer();
+}
+
+function switchToBreakSession() {
+    isFocusSession = false;
+    timeLeft = BREAK_SESSION_LENGTH;
+    focusSessionsCompleted++;
+    updateDailyFocusSessions();
+    sendNotification('Focus session completed! Time for a 5-minute break.');
+}
+
+function switchToFocusSession() {
+    isFocusSession = true;
+    timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
+    sendNotification('Break time over! Ready for another focus session?');
+}
+
+function sendNotification(message) {
+    chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'images/demure_pomodoro_icon_128x128.png',
+        title: 'Zen Pomodoro',
+        message: message,
+        priority: 2
+    });
 }
 
 function startTimer() {
@@ -63,17 +76,19 @@ function stopTimer() {
 
 function updateDailyFocusSessions() {
     const today = new Date().toLocaleDateString();
-    if (dailyFocusSessions[today]) {
-        dailyFocusSessions[today]++;
-    } else {
-        dailyFocusSessions[today] = 1;
-    }
-    // Keep only the last 7 days
-    const lastWeek = Object.keys(dailyFocusSessions).sort().slice(-7);
-    dailyFocusSessions = lastWeek.reduce((acc, date) => {
-        acc[date] = dailyFocusSessions[date];
-        return acc;
-    }, {});
+    dailyFocusSessions[today] = (dailyFocusSessions[today] || 0) + 1;
+    pruneOldSessions();
+}
+
+function pruneOldSessions() {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    Object.keys(dailyFocusSessions).forEach(date => {
+        if (new Date(date) < oneWeekAgo) {
+            delete dailyFocusSessions[date];
+        }
+    });
 }
 
 function getWeeklyAverage() {
@@ -81,18 +96,13 @@ function getWeeklyAverage() {
     return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0;
 }
 
-function extractYouTubeId(url) {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-}
-
 function playMusic() {
-    if (isMusicOn) {
+    if (isMusicOn && !isMusicPlaying) { // Only start music if it's not already playing
         chrome.storage.sync.get(['musicUrl'], (result) => {
             if (result.musicUrl) {
                 chrome.tabs.create({ url: result.musicUrl, active: false }, (tab) => {
                     musicTab = tab;
+                    isMusicPlaying = true; // Set music as playing
                 });
             }
         });
@@ -103,6 +113,7 @@ function stopMusic() {
     if (musicTab) {
         chrome.tabs.remove(musicTab.id);
         musicTab = null;
+        isMusicPlaying = false; // Set music as not playing
     }
 }
 
@@ -117,11 +128,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'resetTimer':
             stopTimer();
             isFocusSession = true;
-            timeLeft = FOCUS_SESSION_LENGTH;
+            timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
             break;
         case 'setTime':
             timeLeft = request.time;
-            isFocusSession = true; // Always set to focus session when manually setting time
+            DEFAULT_FOCUS_SESSION_LENGTH = request.defaultTime;
+            isFocusSession = true;
+            chrome.storage.sync.set({ defaultFocusTime: DEFAULT_FOCUS_SESSION_LENGTH });
             break;
         case 'startEditing':
             isEditing = true;
@@ -142,24 +155,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
             break;
         case 'getTime':
-            sendResponse({ 
-                timeLeft: timeLeft, 
-                isRunning: isRunning,
-                isFocusSession: isFocusSession,
-                focusSessionsCompleted: focusSessionsCompleted,
+            sendResponse({
+                timeLeft,
+                isRunning,
+                isFocusSession,
+                focusSessionsCompleted,
                 dailyFocusSessions: dailyFocusSessions[new Date().toLocaleDateString()] || 0,
                 weeklyAverage: getWeeklyAverage(),
-                isMusicOn: isMusicOn
+                isMusicOn,
+                isMusicPlaying,
+                DEFAULT_FOCUS_SESSION_LENGTH
             });
             return true;
     }
 });
 
-// Start the timer when the background script loads
-startTimer();
-
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.sync.set({ theme: 'auto' }, () => {
-        console.log('Default theme set to auto');
+    chrome.storage.sync.set({ theme: 'auto', defaultFocusTime: INITIAL_FOCUS_SESSION_LENGTH }, () => {
+        console.log('Default theme set to auto and default focus time set');
     });
 });
+
+// Start the timer when the background script loads
+startTimer();

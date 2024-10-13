@@ -16,10 +16,14 @@
     "background": {
         "service_worker": "background.js"
     },
-    "permissions": ["alarms", "storage", "notifications", "tabs"],
+    "permissions": ["alarms", "storage", "notifications"],
+    "optional_permissions": ["tabs"],
     "options_page": "settings/settings.html",
     "web_accessible_resources": [{
         "resources": ["audio_player.html"],
         "matches": ["<all_urls>"]
-    }]
+    }],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    }
 }
