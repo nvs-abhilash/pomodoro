@@ -9,6 +9,13 @@ MindfulMinutes is a Pomodoro-style timer Chrome extension designed to help you s
 - Daily and weekly productivity statistics
 - Light and dark theme
 
+<div style="display: flex; justify-content: space-between;">
+  <img src="images/light.png" alt="MindfulMinutes Light Theme" width="48%">
+  <img src="images/dark.png" alt="MindfulMinutes Dark Theme" width="48%">
+</div>
+
+
+
 ## Installation
 
 To install the MindfulMinutes Chrome extension, follow these steps:
