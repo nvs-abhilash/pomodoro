@@ -195,3 +195,28 @@ button:hover {
 #settingsForm button[type="submit"]:hover {
     background-color: var(--primary-hover);
 }
+
+/* Dark mode specific styles */
+[data-theme="dark"] {
+    --background-color: #1a1a1a;
+    --color: #ffffff;
+    --primary: #3498db;
+    --primary-hover: #2980b9;
+    --secondary: #95a5a6;
+    --secondary-hover: #7f8c8d;
+}
+
+/* Light mode specific styles */
+[data-theme="light"] {
+    --background-color: #ffffff;
+    --color: #1a1a1a;
+    --primary: #3498db;
+    --primary-hover: #2980b9;
+    --secondary: #95a5a6;
+    --secondary-hover: #7f8c8d;
+}
+
+#themeSelect {
+    width: 100%;
+    margin-bottom: 1rem;
+}

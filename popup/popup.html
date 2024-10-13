@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="auto">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,6 +34,12 @@
             <form id="settingsForm">
                 <label for="musicUrl">YouTube Music URL:</label>
                 <input type="url" id="musicUrl" required placeholder="https://www.youtube.com/watch?v=...">
+                <label for="themeSelect">Theme:</label>
+                <select id="themeSelect">
+                    <option value="auto">System Default</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                </select>
                 <button type="submit" class="primary">Save and Return</button>
             </form>
         </div>

@@ -20,6 +20,7 @@ const mainView = document.getElementById('mainView');
 const settingsView = document.getElementById('settingsView');
 const settingsForm = document.getElementById('settingsForm');
 const musicUrlInput = document.getElementById('musicUrl');
+const themeSelect = document.getElementById('themeSelect');
 
 console.log('Music Toggle Element:', musicToggle);
 
@@ -118,8 +119,9 @@ function updateMusicIcon() {
 function showSettingsView() {
     mainView.style.display = 'none';
     settingsView.style.display = 'block';
-    chrome.storage.sync.get(['musicUrl'], (result) => {
+    chrome.storage.sync.get(['musicUrl', 'theme'], (result) => {
         musicUrlInput.value = result.musicUrl || '';
+        themeSelect.value = result.theme || 'auto';
     });
 }
 
@@ -164,10 +166,22 @@ settingsButton.addEventListener('click', showSettingsView);
 settingsForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newMusicUrl = musicUrlInput.value;
-    chrome.storage.sync.set({ musicUrl: newMusicUrl }, () => {
-        console.log('Music URL saved');
+    const newTheme = themeSelect.value;
+    chrome.storage.sync.set({ musicUrl: newMusicUrl, theme: newTheme }, () => {
+        console.log('Settings saved');
         showMainView();
+        applyTheme(newTheme);
     });
+});
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+}
+
+// Initial theme setup
+chrome.storage.sync.get(['theme'], (result) => {
+    const theme = result.theme || 'auto';
+    applyTheme(theme);
 });
 
 // Initial setup

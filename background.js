@@ -157,3 +157,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Start the timer when the background script loads
 startTimer();
+
+chrome.runtime.onInstalled.addListener(() => {
+    chrome.storage.sync.set({ theme: 'auto' }, () => {
+        console.log('Default theme set to auto');
+    });
+});
