@@ -34,12 +34,19 @@
             <form id="settingsForm">
                 <label for="musicUrl">YouTube Music URL:</label>
                 <input type="url" id="musicUrl" required placeholder="https://www.youtube.com/watch?v=...">
+                
                 <label for="themeSelect">Theme:</label>
                 <select id="themeSelect">
                     <option value="auto">System Default</option>
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
                 </select>
+                
+                <div class="checkbox-container">
+                    <input type="checkbox" id="stopMusicOnPause">
+                    <label for="stopMusicOnPause">Stop music when timer is paused</label>
+                </div>
+                
                 <button type="submit" class="primary">Save and Return</button>
             </form>
         </div>

@@ -27,7 +27,8 @@ const elements = {
     settingsForm: document.getElementById('settingsForm'),
     musicUrlInput: document.getElementById('musicUrl'),
     themeSelect: document.getElementById('themeSelect'),
-    editIcon: document.getElementById('editIcon')
+    editIcon: document.getElementById('editIcon'),
+    stopMusicOnPause: document.getElementById('stopMusicOnPause')
 };
 
 function updateDisplay() {
@@ -53,10 +54,17 @@ function updateButtonState() {
 }
 
 function startPauseTimer() {
-    chrome.runtime.sendMessage({ action: isRunning ? 'pauseTimer' : 'startTimer', isMusicOn });
-    isRunning = !isRunning;
-    updateButtonState();
-    updateDisplay(); // Add this line to update edit icon visibility
+    chrome.storage.sync.get(['stopMusicOnPause'], (result) => {
+        const stopMusicOnPause = result.stopMusicOnPause || false;
+        chrome.runtime.sendMessage({ 
+            action: isRunning ? 'pauseTimer' : 'startTimer', 
+            isMusicOn,
+            stopMusicOnPause
+        });
+        isRunning = !isRunning;
+        updateButtonState();
+        updateDisplay();
+    });
 }
 
 function resetTimer() {
@@ -119,9 +127,10 @@ function updateMusicIcon() {
 function showSettingsView() {
     elements.mainView.style.display = 'none';
     elements.settingsView.style.display = 'block';
-    chrome.storage.sync.get(['musicUrl', 'theme'], (result) => {
+    chrome.storage.sync.get(['musicUrl', 'theme', 'stopMusicOnPause'], (result) => {
         elements.musicUrlInput.value = result.musicUrl || '';
         elements.themeSelect.value = result.theme || 'auto';
+        elements.stopMusicOnPause.checked = result.stopMusicOnPause || false;
     });
 }
 
@@ -165,7 +174,12 @@ elements.settingsForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newMusicUrl = elements.musicUrlInput.value;
     const newTheme = elements.themeSelect.value;
-    chrome.storage.sync.set({ musicUrl: newMusicUrl, theme: newTheme }, () => {
+    const stopMusicOnPause = elements.stopMusicOnPause.checked;
+    chrome.storage.sync.set({ 
+        musicUrl: newMusicUrl, 
+        theme: newTheme, 
+        stopMusicOnPause: stopMusicOnPause 
+    }, () => {
         console.log('Settings saved');
         showMainView();
         applyTheme(newTheme);

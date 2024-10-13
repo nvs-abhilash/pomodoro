@@ -13,7 +13,7 @@ let focusSessionsCompleted = 0;
 let dailyFocusSessions = {};
 let isMusicOn = false;
 let musicTab = null;
-let isMusicPlaying = false; // New variable to track if music is currently playing
+let isMusicPlaying = false;
 
 function updateTimer() {
     if (isRunning && !isEditing) {
@@ -68,10 +68,12 @@ function startTimer() {
     }
 }
 
-function stopTimer() {
+function stopTimer(stopMusicFlag = false) {
     clearInterval(timer);
     isRunning = false;
-    stopMusic();
+    if (stopMusicFlag) {
+        stopMusic();
+    }
 }
 
 function updateDailyFocusSessions() {
@@ -123,7 +125,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             startTimer();
             break;
         case 'pauseTimer':
-            stopTimer();
+            stopTimer(request.stopMusicOnPause);
             break;
         case 'resetTimer':
             stopTimer();

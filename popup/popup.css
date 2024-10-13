@@ -88,19 +88,29 @@ button {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.3s, color 0.3s;
 }
 
-button:hover {
+#startPause {
+    background-color: var(--primary);
+    color: var(--primary-inverse);
+    border: 2px solid var(--primary);
+}
+
+#startPause:hover {
     background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
 }
 
 #reset {
-    background-color: var(--secondary);
-    color: var(--secondary-inverse);
+    background-color: var(--background-color);
+    color: var(--secondary);
+    border: 2px solid var(--secondary);
 }
 
 #reset:hover {
-    background-color: var(--secondary-hover);
+    background-color: var(--secondary);
+    color: var(--secondary-inverse);
 }
 
 #stats {
@@ -204,6 +214,8 @@ button:hover {
     --primary-hover: #2980b9;
     --secondary: #95a5a6;
     --secondary-hover: #7f8c8d;
+    --primary-inverse: #ffffff;
+    --secondary-inverse: #ffffff;
 }
 
 /* Light mode specific styles */
@@ -214,9 +226,21 @@ button:hover {
     --primary-hover: #2980b9;
     --secondary: #95a5a6;
     --secondary-hover: #7f8c8d;
+    --primary-inverse: #ffffff;
+    --secondary-inverse: #1a1a1a;
 }
 
 #themeSelect {
     width: 100%;
     margin-bottom: 1rem;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.checkbox-container input[type="checkbox"] {
+    margin-right: 0.5rem;
 }
