@@ -157,17 +157,14 @@ musicToggle.addEventListener('click', () => {
     isMusicOn = !isMusicOn;
     updateMusicIcon();
     chrome.runtime.sendMessage({ action: 'toggleMusic', isMusicOn });
-    if (isMusicOn && musicUrl) {
-        chrome.tabs.create({ url: musicUrl, active: false });
-    }
 });
 
 settingsButton.addEventListener('click', showSettingsView);
 
 settingsForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    musicUrl = musicUrlInput.value;
-    chrome.storage.sync.set({ musicUrl: musicUrl }, () => {
+    const newMusicUrl = musicUrlInput.value;
+    chrome.storage.sync.set({ musicUrl: newMusicUrl }, () => {
         console.log('Music URL saved');
         showMainView();
     });

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zen Pomodoro Audio Player</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; }
+        #player { position: fixed; top: -9999px; left: -9999px; }
+    </style>
+</head>
+<body>
+    <div id="player"></div>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        let player;
+        function onYouTubeIframeAPIReady() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = urlParams.get('v');
+            player = new YT.Player('player', {
+                height: '1',
+                width: '1',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 0,
+                    'loop': 1,
+                    'playlist': videoId
+                },
+                events: {
+                    'onReady': onPlayerReady
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            event.target.setVolume(50);
+            event.target.playVideo();
+        }
+    </script>
+</body>
+</html>

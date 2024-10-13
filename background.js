@@ -9,7 +9,6 @@ const FOCUS_SESSION_LENGTH = 25 * 60;
 const BREAK_SESSION_LENGTH = 5 * 60;
 let isMusicOn = false;
 let musicTab = null;
-let musicUrl = '';
 
 function updateTimer() {
     if (isRunning && !isEditing) {
@@ -82,16 +81,17 @@ function getWeeklyAverage() {
     return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0;
 }
 
+function extractYouTubeId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+}
+
 function playMusic() {
     if (isMusicOn) {
         chrome.storage.sync.get(['musicUrl'], (result) => {
             if (result.musicUrl) {
                 chrome.tabs.create({ url: result.musicUrl, active: false }, (tab) => {
-                    musicTab = tab;
-                });
-            } else {
-                // Play local music file if no URL is set
-                chrome.tabs.create({ url: chrome.runtime.getURL('music/focus_music.mp3'), active: false }, (tab) => {
                     musicTab = tab;
                 });
             }
@@ -136,14 +136,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'toggleMusic':
             isMusicOn = request.isMusicOn;
             if (isMusicOn) {
-                chrome.storage.sync.get(['musicUrl'], (result) => {
-                    musicUrl = result.musicUrl || '';
-                    if (musicUrl && isRunning) {
-                        chrome.tabs.create({ url: musicUrl, active: false }, (tab) => {
-                            musicTab = tab;
-                        });
-                    }
-                });
+                playMusic();
             } else {
                 stopMusic();
             }
@@ -156,8 +149,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 focusSessionsCompleted: focusSessionsCompleted,
                 dailyFocusSessions: dailyFocusSessions[new Date().toLocaleDateString()] || 0,
                 weeklyAverage: getWeeklyAverage(),
-                isMusicOn: isMusicOn,
-                musicUrl: musicUrl
+                isMusicOn: isMusicOn
             });
             return true;
     }

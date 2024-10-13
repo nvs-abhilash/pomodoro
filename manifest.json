@@ -17,5 +17,9 @@
         "service_worker": "background.js"
     },
     "permissions": ["alarms", "storage", "notifications", "tabs"],
-    "options_page": "settings/settings.html"
+    "options_page": "settings/settings.html",
+    "web_accessible_resources": [{
+        "resources": ["audio_player.html"],
+        "matches": ["<all_urls>"]
+    }]
 }
