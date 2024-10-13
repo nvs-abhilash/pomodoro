@@ -2,11 +2,12 @@
 
 // Constants
 const INITIAL_FOCUS_SESSION_LENGTH = 25 * 60;
-const BREAK_SESSION_LENGTH = 5 * 60;
+const INITIAL_BREAK_SESSION_LENGTH = 5 * 60;
 
 // State
 const state = {
     DEFAULT_FOCUS_SESSION_LENGTH: INITIAL_FOCUS_SESSION_LENGTH,
+    DEFAULT_BREAK_SESSION_LENGTH: INITIAL_BREAK_SESSION_LENGTH,
     timeLeft: INITIAL_FOCUS_SESSION_LENGTH,
     isRunning: false,
     isFocusSession: true,
@@ -31,22 +32,27 @@ function updateTimer() {
 function handleSessionEnd() {
     state.isRunning = false;
     clearInterval(timer);
-    state.isFocusSession ? switchToBreakSession() : switchToFocusSession();
-    startTimer();
+    if (state.isFocusSession) {
+        switchToBreakSession();
+        startTimer(); // Automatically start break session
+    } else {
+        switchToFocusSession();
+        // Don't start the timer automatically for focus session
+    }
 }
 
 function switchToBreakSession() {
     state.isFocusSession = false;
-    state.timeLeft = BREAK_SESSION_LENGTH;
+    state.timeLeft = state.DEFAULT_BREAK_SESSION_LENGTH;
     state.focusSessionsCompleted++;
     updateDailyFocusSessions();
-    sendNotification('Focus session completed! Time for a 5-minute break.');
+    sendNotification('Focus session completed! Time for a break.');
 }
 
 function switchToFocusSession() {
     state.isFocusSession = true;
     state.timeLeft = state.DEFAULT_FOCUS_SESSION_LENGTH;
-    sendNotification('Break time over! Ready for another focus session?');
+    sendNotification('Break time over! Ready to start a new focus session?');
 }
 
 function startTimer() {
@@ -126,9 +132,13 @@ function handleMessage(request, sender, sendResponse) {
         },
         setTime: () => {
             state.timeLeft = request.time;
-            state.DEFAULT_FOCUS_SESSION_LENGTH = request.defaultTime;
-            state.isFocusSession = true;
-            chrome.storage.sync.set({ defaultFocusTime: state.DEFAULT_FOCUS_SESSION_LENGTH });
+            if (state.isFocusSession) {
+                state.DEFAULT_FOCUS_SESSION_LENGTH = request.defaultTime;
+                chrome.storage.sync.set({ defaultFocusTime: state.DEFAULT_FOCUS_SESSION_LENGTH });
+            } else {
+                state.DEFAULT_BREAK_SESSION_LENGTH = request.defaultTime;
+                chrome.storage.sync.set({ defaultBreakTime: state.DEFAULT_BREAK_SESSION_LENGTH });
+            }
         },
         startEditing: () => {
             state.isEditing = true;
@@ -159,8 +169,12 @@ function handleMessage(request, sender, sendResponse) {
 chrome.runtime.onMessage.addListener(handleMessage);
 
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.sync.set({ theme: 'auto', defaultFocusTime: INITIAL_FOCUS_SESSION_LENGTH }, () => {
-        console.log('Default theme set to auto and default focus time set');
+    chrome.storage.sync.set({ 
+        theme: 'auto', 
+        defaultFocusTime: INITIAL_FOCUS_SESSION_LENGTH,
+        defaultBreakTime: INITIAL_BREAK_SESSION_LENGTH
+    }, () => {
+        console.log('Default settings set');
     });
 });
 

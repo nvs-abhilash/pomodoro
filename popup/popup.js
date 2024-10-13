@@ -1,7 +1,9 @@
 'use strict';
 
 const INITIAL_FOCUS_SESSION_LENGTH = 25 * 60;
+const INITIAL_BREAK_SESSION_LENGTH = 5 * 60;
 let DEFAULT_FOCUS_SESSION_LENGTH = INITIAL_FOCUS_SESSION_LENGTH;
+let DEFAULT_BREAK_SESSION_LENGTH = INITIAL_BREAK_SESSION_LENGTH;
 
 const state = {
     timeLeft: DEFAULT_FOCUS_SESSION_LENGTH,
@@ -41,6 +43,19 @@ function updateDisplay() {
         elements.sessionTypeDisplay.textContent = state.isFocusSession ? 'Focus Session' : 'Break Time';
         elements.statsDisplay.textContent = `Today: ${state.dailyFocusSessions} | Weekly Avg: ${state.weeklyAverage.toFixed(1)}`;
         elements.editIcon.style.display = state.isRunning ? 'none' : 'block';
+        
+        // Update start/pause button text
+        const startPauseIcon = elements.startPauseButton.querySelector('i');
+        if (state.isFocusSession && !state.isRunning && state.timeLeft === DEFAULT_FOCUS_SESSION_LENGTH) {
+            startPauseIcon.className = 'fas fa-play';
+            elements.startPauseButton.title = 'Start Focus Session';
+        } else if (state.isRunning) {
+            startPauseIcon.className = 'fas fa-pause';
+            elements.startPauseButton.title = 'Pause';
+        } else {
+            startPauseIcon.className = 'fas fa-play';
+            elements.startPauseButton.title = 'Resume';
+        }
     }
 }
 
@@ -49,6 +64,9 @@ function updateButtonState() {
     icon.classList.toggle('fa-play', !state.isRunning);
     icon.classList.toggle('fa-pause', state.isRunning);
     elements.editIcon.style.display = state.isRunning ? 'none' : 'block';
+    
+    // Update button title
+    elements.startPauseButton.title = state.isRunning ? 'Pause' : (state.isFocusSession && state.timeLeft === DEFAULT_FOCUS_SESSION_LENGTH ? 'Start Focus Session' : 'Resume');
 }
 
 function startPauseTimer() {
@@ -98,12 +116,15 @@ function saveNewTime() {
     const newMinutes = parseInt(minutesInput.value, 10);
     if (newMinutes && newMinutes > 0 && newMinutes <= 60) {
         state.timeLeft = newMinutes * 60;
-        DEFAULT_FOCUS_SESSION_LENGTH = state.timeLeft;
-        state.isFocusSession = true;
+        if (state.isFocusSession) {
+            DEFAULT_FOCUS_SESSION_LENGTH = state.timeLeft;
+        } else {
+            DEFAULT_BREAK_SESSION_LENGTH = state.timeLeft;
+        }
         chrome.runtime.sendMessage({ 
             action: 'setTime', 
             time: state.timeLeft,
-            defaultTime: DEFAULT_FOCUS_SESSION_LENGTH
+            defaultTime: state.isFocusSession ? DEFAULT_FOCUS_SESSION_LENGTH : DEFAULT_BREAK_SESSION_LENGTH
         });
         state.isEditing = false;
         updateDisplay();
@@ -179,13 +200,16 @@ elements.settingsForm.addEventListener('submit', (e) => {
 });
 
 // Initial setup
-chrome.storage.sync.get(['theme', 'defaultFocusTime'], (result) => {
+chrome.storage.sync.get(['theme', 'defaultFocusTime', 'defaultBreakTime'], (result) => {
     const theme = result.theme || 'auto';
     applyTheme(theme);
     if (result.defaultFocusTime) {
         DEFAULT_FOCUS_SESSION_LENGTH = result.defaultFocusTime;
-        state.timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
     }
+    if (result.defaultBreakTime) {
+        DEFAULT_BREAK_SESSION_LENGTH = result.defaultBreakTime;
+    }
+    state.timeLeft = DEFAULT_FOCUS_SESSION_LENGTH;
 });
 
 updateFromBackground();
