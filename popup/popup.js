@@ -6,6 +6,7 @@ let focusSessionsCompleted = 0;
 let dailyFocusSessions = 0;
 let weeklyAverage = 0;
 let isMusicOn = false;
+let musicUrl = '';
 
 const timerDisplay = document.getElementById('timer');
 const timerContainer = document.getElementById('timerContainer');
@@ -14,6 +15,13 @@ const resetButton = document.getElementById('reset');
 const sessionTypeDisplay = document.getElementById('sessionType');
 const statsDisplay = document.getElementById('stats');
 const musicToggle = document.getElementById('musicToggle');
+const settingsButton = document.getElementById('settingsButton');
+const mainView = document.getElementById('mainView');
+const settingsView = document.getElementById('settingsView');
+const settingsForm = document.getElementById('settingsForm');
+const musicUrlInput = document.getElementById('musicUrl');
+
+console.log('Music Toggle Element:', musicToggle);
 
 function updateDisplay() {
     if (!isEditing) {
@@ -96,30 +104,30 @@ function editTimer() {
     });
 }
 
-startPauseButton.addEventListener('click', startPauseTimer);
-resetButton.addEventListener('click', resetTimer);
-timerContainer.addEventListener('click', editTimer);
-
-// Add this function to update the music icon
 function updateMusicIcon() {
     const icon = musicToggle.querySelector('i');
     if (isMusicOn) {
         icon.classList.remove('fa-volume-mute');
-        icon.classList.add('fa-volume-up');
+        icon.classList.add('fa-music');
     } else {
-        icon.classList.remove('fa-volume-up');
+        icon.classList.remove('fa-music');
         icon.classList.add('fa-volume-mute');
     }
 }
 
-// Add this event listener for the music toggle
-musicToggle.addEventListener('click', () => {
-    isMusicOn = !isMusicOn;
-    updateMusicIcon();
-    chrome.runtime.sendMessage({ action: 'toggleMusic', isMusicOn });
-});
+function showSettingsView() {
+    mainView.style.display = 'none';
+    settingsView.style.display = 'block';
+    chrome.storage.sync.get(['musicUrl'], (result) => {
+        musicUrlInput.value = result.musicUrl || '';
+    });
+}
 
-// Update timer display from background
+function showMainView() {
+    settingsView.style.display = 'none';
+    mainView.style.display = 'block';
+}
+
 function updateFromBackground() {
     if (!isEditing) {
         chrome.runtime.sendMessage({ action: 'getTime' }, (response) => {
@@ -131,6 +139,7 @@ function updateFromBackground() {
                 dailyFocusSessions = response.dailyFocusSessions;
                 weeklyAverage = response.weeklyAverage;
                 isMusicOn = response.isMusicOn;
+                musicUrl = response.musicUrl || '';
                 updateDisplay();
                 updateButtonState();
                 updateMusicIcon();
@@ -139,8 +148,36 @@ function updateFromBackground() {
     }
 }
 
-// Initial display update
+// Event Listeners
+startPauseButton.addEventListener('click', startPauseTimer);
+resetButton.addEventListener('click', resetTimer);
+timerContainer.addEventListener('click', editTimer);
+
+musicToggle.addEventListener('click', () => {
+    isMusicOn = !isMusicOn;
+    updateMusicIcon();
+    chrome.runtime.sendMessage({ action: 'toggleMusic', isMusicOn });
+    if (isMusicOn && musicUrl) {
+        chrome.tabs.create({ url: musicUrl, active: false });
+    }
+});
+
+settingsButton.addEventListener('click', showSettingsView);
+
+settingsForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    musicUrl = musicUrlInput.value;
+    chrome.storage.sync.set({ musicUrl: musicUrl }, () => {
+        console.log('Music URL saved');
+        showMainView();
+    });
+});
+
+// Initial setup
 updateFromBackground();
+updateMusicIcon();
 
 // Set up an interval to periodically check the timer state
 setInterval(updateFromBackground, 1000);
+
+console.log('Popup script loaded');

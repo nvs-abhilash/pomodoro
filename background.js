@@ -9,6 +9,7 @@ const FOCUS_SESSION_LENGTH = 25 * 60;
 const BREAK_SESSION_LENGTH = 5 * 60;
 let isMusicOn = false;
 let musicTab = null;
+let musicUrl = '';
 
 function updateTimer() {
     if (isRunning && !isEditing) {
@@ -134,8 +135,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             break;
         case 'toggleMusic':
             isMusicOn = request.isMusicOn;
-            if (isMusicOn && isRunning) {
-                playMusic();
+            if (isMusicOn) {
+                chrome.storage.sync.get(['musicUrl'], (result) => {
+                    musicUrl = result.musicUrl || '';
+                    if (musicUrl && isRunning) {
+                        chrome.tabs.create({ url: musicUrl, active: false }, (tab) => {
+                            musicTab = tab;
+                        });
+                    }
+                });
             } else {
                 stopMusic();
             }
@@ -148,7 +156,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 focusSessionsCompleted: focusSessionsCompleted,
                 dailyFocusSessions: dailyFocusSessions[new Date().toLocaleDateString()] || 0,
                 weeklyAverage: getWeeklyAverage(),
-                isMusicOn: isMusicOn
+                isMusicOn: isMusicOn,
+                musicUrl: musicUrl
             });
             return true;
     }
